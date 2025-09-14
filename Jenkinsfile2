@@ -35,46 +35,42 @@ pipeline {
   }
 
   post {
-    success {
-      emailext(
-        subject: "✅ Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} PASSED",
-        body: """Build: ${env.BUILD_URL}
+  success {
+    emailext(
+      subject: "✅ Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} PASSED",
+      body: """Build: ${env.BUILD_URL}
 Status: SUCCESS
 
-• Job: ${env.JOB_NAME}
-• Build #: ${env.BUILD_NUMBER}
-• Branch: ${env.GIT_BRANCH ?: 'n/a'}
-
-Artifacts: coverage (if present).""",
-        to: 'you@example.com',
-        // Attach build log + any coverage files produced under app/
-        attachLog: true,
-        compressLog: true,
-        attachmentsPattern: 'app/coverage/**,app/npm-debug.log'
-      )
-    }
-
-    failure {
-      emailext(
-        subject: "❌ Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED",
-        body: """Build: ${env.BUILD_URL}
+Job: ${env.JOB_NAME}
+Build #: ${env.BUILD_NUMBER}
+""",
+      to: 'naveenneth1234@gmail.com',
+      from: 'naveenneth1234@gmail.com',
+      replyTo: 'naveenneth1234@gmail.com',
+      attachLog: true,
+      compressLog: true,
+      // include audit output if present
+      attachmentsPattern: 'app/audit.txt,app/coverage/**,app/npm-debug.log'
+    )
+  }
+  failure {
+    emailext(
+      subject: "❌ Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED",
+      body: """Build: ${env.BUILD_URL}
 Status: FAILURE
 
-Please check the console log and attached artifacts.
-
-• Job: ${env.JOB_NAME}
-• Build #: ${env.BUILD_NUMBER}
-• Branch: ${env.GIT_BRANCH ?: 'n/a'}""",
-        to: 'you@example.com',
-        attachLog: true,
-        compressLog: true,
-        attachmentsPattern: 'app/coverage/**,app/npm-debug.log'
-      )
-    }
-
-    always {
-      // Keep artifacts in Jenkins too
-      archiveArtifacts artifacts: 'app/coverage/**,app/npm-debug.log', allowEmptyArchive: true
-    }
+Please check the console log and attachments.""",
+      to: 'naveenneth1234@gmail.com',
+      from: 'naveenneth1234@gmail.com',
+      replyTo: 'naveenneth1234@gmail.com',
+      attachLog: true,
+      compressLog: true,
+      attachmentsPattern: 'app/audit.txt,app/coverage/**,app/npm-debug.log'
+    )
   }
+  always {
+    archiveArtifacts artifacts: 'app/audit.txt,app/coverage/**,app/npm-debug.log', allowEmptyArchive: true
+  }
+}
+
 }
