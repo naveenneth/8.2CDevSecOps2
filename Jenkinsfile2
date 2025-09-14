@@ -1,33 +1,30 @@
 pipeline {
-  agent {
-    docker {
-      image 'node:18-bullseye'   // Node + npm available
-      args '-u root'             // ensure permissions to write workspace
-    }
-  }
-
+  agent any
   triggers { pollSCM('H/5 * * * *') }
 
   stages {
     stage('Checkout') {
       steps { checkout scm }
     }
-    stage('Install Dependencies') {
-      steps { sh 'npm ci || npm install' }
-    }
-    stage('Run Tests') {
-      steps { sh 'npm test || true' }
-    }
-    stage('Generate Coverage Report') {
-      steps { sh 'npm run coverage || true' }
-    }
-    stage('NPM Audit (Security Scan)') {
-      steps { sh 'npm audit || true' }
+    stage('Install • Test • Coverage • Audit') {
+      steps {
+        nodejs(nodeJSInstallationName: 'node18') {
+          sh '''
+            node -v
+            npm -v
+            npm ci || npm install
+            npm test || true
+            npm run coverage || true
+            npm audit || true
+          '''
+        }
+      }
     }
   }
 
   post {
     always {
+      // ok if coverage doesn't exist
       archiveArtifacts artifacts: 'coverage/**,npm-debug.log', allowEmptyArchive: true
     }
   }
