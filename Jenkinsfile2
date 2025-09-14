@@ -1,19 +1,24 @@
 pipeline {
   agent any
-  options { skipDefaultCheckout(true) }           // avoid auto checkout
+  options { skipDefaultCheckout(true) }          // we control all checkouts
   triggers { pollSCM('H/5 * * * *') }
 
   stages {
     stage('Checkout Jenkinsfile repo') {
-      steps { checkout scm }                      // your repo (with Jenkinsfile2/Jenkinsfile)
+      steps { checkout scm }
     }
+
     stage('Fetch app (nodejs-goof)') {
       steps {
         dir('app') {
-          git url: 'https://github.com/snyk-labs/nodejs-goof.git', branch: 'master'
+          // IMPORTANT: use 'main' not 'master'
+          git branch: 'main', url: 'https://github.com/snyk-labs/nodejs-goof.git'
+          // (optional) shallow clone for speed:
+          // checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/snyk-labs/nodejs-goof.git']], extensions: [[$class: 'CloneOption', depth: 1, shallow: true]]])
         }
       }
     }
+
     stage('Install • Test • Coverage • Audit') {
       steps {
         nodejs(nodeJSInstallationName: 'node18') {
