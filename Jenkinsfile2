@@ -1,22 +1,32 @@
 pipeline {
   agent any
+  options { skipDefaultCheckout(true) }           // avoid auto checkout
   triggers { pollSCM('H/5 * * * *') }
 
   stages {
-    stage('Checkout') {
-      steps { checkout scm }
+    stage('Checkout Jenkinsfile repo') {
+      steps { checkout scm }                      // your repo (with Jenkinsfile2/Jenkinsfile)
+    }
+    stage('Fetch app (nodejs-goof)') {
+      steps {
+        dir('app') {
+          git url: 'https://github.com/snyk-labs/nodejs-goof.git', branch: 'master'
+        }
+      }
     }
     stage('Install • Test • Coverage • Audit') {
       steps {
         nodejs(nodeJSInstallationName: 'node18') {
-          sh '''
-            node -v
-            npm -v
-            npm ci || npm install
-            npm test || true
-            npm run coverage || true
-            npm audit || true
-          '''
+          dir('app') {
+            sh '''
+              node -v
+              npm -v
+              npm ci || npm install
+              npm test || true
+              npm run coverage || true
+              npm audit || true
+            '''
+          }
         }
       }
     }
@@ -24,8 +34,7 @@ pipeline {
 
   post {
     always {
-      // ok if coverage doesn't exist
-      archiveArtifacts artifacts: 'coverage/**,npm-debug.log', allowEmptyArchive: true
+      archiveArtifacts artifacts: 'app/coverage/**,app/npm-debug.log', allowEmptyArchive: true
     }
   }
 }
