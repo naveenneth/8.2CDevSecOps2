@@ -1,6 +1,6 @@
 pipeline {
   agent any
-  options { skipDefaultCheckout(true) }          // we control all checkouts
+  options { skipDefaultCheckout(true) }
   triggers { pollSCM('H/5 * * * *') }
 
   stages {
@@ -11,10 +11,7 @@ pipeline {
     stage('Fetch app (nodejs-goof)') {
       steps {
         dir('app') {
-          // IMPORTANT: use 'main' not 'master'
           git branch: 'main', url: 'https://github.com/snyk-labs/nodejs-goof.git'
-          // (optional) shallow clone for speed:
-          // checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[url: 'https://github.com/snyk-labs/nodejs-goof.git']], extensions: [[$class: 'CloneOption', depth: 1, shallow: true]]])
         }
       }
     }
@@ -38,7 +35,45 @@ pipeline {
   }
 
   post {
+    success {
+      emailext(
+        subject: "✅ Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} PASSED",
+        body: """Build: ${env.BUILD_URL}
+Status: SUCCESS
+
+• Job: ${env.JOB_NAME}
+• Build #: ${env.BUILD_NUMBER}
+• Branch: ${env.GIT_BRANCH ?: 'n/a'}
+
+Artifacts: coverage (if present).""",
+        to: 'you@example.com',
+        // Attach build log + any coverage files produced under app/
+        attachLog: true,
+        compressLog: true,
+        attachmentsPattern: 'app/coverage/**,app/npm-debug.log'
+      )
+    }
+
+    failure {
+      emailext(
+        subject: "❌ Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER} FAILED",
+        body: """Build: ${env.BUILD_URL}
+Status: FAILURE
+
+Please check the console log and attached artifacts.
+
+• Job: ${env.JOB_NAME}
+• Build #: ${env.BUILD_NUMBER}
+• Branch: ${env.GIT_BRANCH ?: 'n/a'}""",
+        to: 'you@example.com',
+        attachLog: true,
+        compressLog: true,
+        attachmentsPattern: 'app/coverage/**,app/npm-debug.log'
+      )
+    }
+
     always {
+      // Keep artifacts in Jenkins too
       archiveArtifacts artifacts: 'app/coverage/**,app/npm-debug.log', allowEmptyArchive: true
     }
   }
